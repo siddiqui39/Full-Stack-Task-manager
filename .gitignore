@@ -1,0 +1,18 @@
+# Go
+bin/
+vendor/
+*.exe
+*.test
+
+# Env files
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
