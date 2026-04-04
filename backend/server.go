@@ -4,6 +4,7 @@ import (
 	"log"
 	"task-manager/backend/config"
 	"task-manager/backend/routes"
+	//"task-manager/backend/middleware"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -12,8 +13,6 @@ import (
 func main() {
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
-		// Optional: Add this to enable strict header handling
-		// Prefork: false,
 	})
 
 	// Enable CORS middleware for React frontend
@@ -32,8 +31,13 @@ func main() {
 	// Connect to PostgreSQL
 	config.ConnectDB()
 
-	// Register the API register route
+	// API route
 	app.Post("/api/register", routes.Register)
+	app.Post("/api/login", routes.Login)
+
+	// Protected routes (example: tasks)
+//	app.Get("/api/tasks", middleware.JWTMiddleware, routes.GetTasks)
+//	app.Post("/api/tasks", middleware.JWTMiddleware, routes.CreateTask)
 
 	// Test route
 	app.Get("/", func(c *fiber.Ctx) error {
