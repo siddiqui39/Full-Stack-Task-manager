@@ -10,7 +10,7 @@ import (
 // JWT secret (should match the one in Login)
 var jwtSecret = []byte("your_super_secret_key")
 
-func Protected() fiber.Handler {
+func JWTMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		tokenString := c.Get("Authorization") // Expect: Bearer <token>
 		if tokenString == "" {

@@ -1,50 +1,102 @@
-
 package routes
 
 import (
-	"context"
 	"task-manager/backend/config"
 	"task-manager/backend/models"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
+// Register a new user
 func Register(c *fiber.Ctx) error {
-	//Create a new_User struct to hold the request data
-	user := new(models.User)
+	var input struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
 
-	//Parse JSON body into user struct
-	if err := c.BodyParser(user); err != nil {
+	if err := c.BodyParser(&input); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Cannot parse JSON",
+			"error": "Invalid input",
 		})
 	}
 
-	//Hash the user's password before storing
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 14)
+	// Hash the password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-
+			"error": "Failed to hash password",
 		})
 	}
-	user.Password = string(hashedPassword)
 
-	//Insert the new user into the database
-	_, err = config.DB.Exec(
-		context.Background(),
-		"INSERT INTO users (email, password) VALUES ($1, $2)",
-		user.Email, user.Password,
-	)
+	// Insert user into DB
+	query := `INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id`
+	var userID int
+	err = config.DB.QueryRow(c.Context(), query, input.Email, string(hashedPassword)).Scan(&userID)
+	if err != nil {
+		// Generic error response for unique email or other insertion errors
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+			"error": "Email already exists or another error occurred",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"id":    userID,
+		"email": input.Email,
+	})
+}
+
+// Login existing user
+func Login(c *fiber.Ctx) error {
+	var input struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid input",
+		})
+	}
+
+	// Get user from DB
+	var user models.User
+	err := config.DB.QueryRow(c.Context(),
+		"SELECT id, email, password FROM users WHERE email=$1",
+		input.Email,
+	).Scan(&user.ID, &user.Email, &user.Password)
 
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid email or password",
 		})
 	}
 
-	//Return success massage
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "User registered successfully!",
+	// Compare hashed password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password))
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid email or password",
+		})
+	}
+
+	// Create JWT token using config.JwtSecret
+	claims := jwt.MapClaims{
+		"userId": user.ID,
+		"exp":    time.Now().Add(time.Hour * 24).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	t, err := token.SignedString(config.JwtSecret)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Could not login",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"token": t,
 	})
 }
