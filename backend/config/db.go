@@ -28,5 +28,5 @@ func ConnectDB() {
 		log.Fatalf("Unable to ping database: %v\n", err)
 	}
 
-	fmt.Println("Connected to database successfully ✅")
+	fmt.Println("Connected to database successfully")
 }

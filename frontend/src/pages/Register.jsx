@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // <--- Add this
+import { useNavigate } from "react-router-dom"; 
 
 function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate(); // <--- Add this
+  const navigate = useNavigate(); 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,7 +21,7 @@ function Register() {
 
       if (data.success) {
         alert("Registration successful! Please login.");
-        navigate("/login"); // <--- Redirect after registration
+        navigate("/login"); //Redirect after registration
       } else {
         alert("Registration failed!");
       }

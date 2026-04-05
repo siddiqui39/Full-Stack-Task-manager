@@ -19,7 +19,7 @@ func JWTMiddleware() fiber.Handler {
 			})
 		}
 
-		// Remove "Bearer " prefix
+		// Remove "Bearer" prefix
 		if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
 			tokenString = tokenString[7:]
 		}
